@@ -21,26 +21,14 @@ def load_data(conn,TABLE_NAME):
 def save_data(df,conn,TABLE_NAME):
     df_tmp = df.copy()
     df_tmp["lastasked"] = df_tmp["lastasked"].astype(str)
-    df_tmp = df_tmp.astype({
-    "id":"int64",
-    "level":"int64",
-    "subject":"string",
-    "unit":"string",
-    "exercise": "string",
-    "exercise_image": "string",
-    "exercise_audio": "string",
-    "answer": "string",
-    "answer_image":"string",
-    "additional_info":"string",
-    "answer_audio":"string",
-    "reference":"string",
-    "correct": "int64",
-    "incorrect": "int64",
-    "lastasked": "string",  # ISO 8601 形式に変換済みの文字列
-    "delete":"int64"
-    })
+  # "None" という文字列が入らないように処理
+    df_tmp["exercise_image"] = df_tmp["exercise_image"].apply(lambda x: x if pd.notna(x) and x != "None" else None)
+
     for _, row in df_tmp.iterrows():
-        conn.table(TABLE_NAME).upsert(row.to_dict()).execute()
+        data = row.to_dict()
+        data = {k: (v if pd.notna(v) and v != "None" else None) for k, v in data.items()}
+        conn.table(TABLE_NAME).upsert(data).execute()
+
 
 # 優先出題条件に基づきデータをフィルタリング
 def filter_questions(df):
@@ -50,12 +38,11 @@ def filter_questions(df):
     )
     df["Accuracy"] = df["correct"] / (df["correct"] + df["incorrect"])
     df["Accuracy"] = df["Accuracy"].fillna(0)
-    df_t = df[df["delete"] != 1] #削除区分1以外が対象
-    group_a = df_t[df_t["correct"] + df_t["incorrect"] == 0].sort_values(by="lastasked", na_position="first")
-    group_b = df_t[(df_t["correct"] + df_t["incorrect"] == 1) & (df_t["DaysSinceLastAsked"] >= 1)]
-    group_c = df_t[(df_t["correct"] + df_t["incorrect"] == 2) & (df_t["DaysSinceLastAsked"] >= 3)]
-    group_d = df_t[(df_t["correct"] + df_t["incorrect"] == 3) & (df_t["DaysSinceLastAsked"] >= 7)]
-    group_e = df_t[(df_t["correct"] + df_t["incorrect"] >= 4) & (df_t["Accuracy"] < 0.8)]
+    group_a = df[df["correct"] + df["incorrect"] == 0].sort_values(by="lastasked", na_position="first")
+    group_b = df[(df["correct"] + df["incorrect"] == 1) & (df["DaysSinceLastAsked"] >= 1)]
+    group_c = df[(df["correct"] + df["incorrect"] == 2) & (df["DaysSinceLastAsked"] >= 3)]
+    group_d = df[(df["correct"] + df["incorrect"] == 3) & (df["DaysSinceLastAsked"] >= 7)]
+    group_e = df[(df["correct"] + df["incorrect"] >= 4) & (df["Accuracy"] < 0.8)]
 
     selected_a = group_a.head(5)
     selected_b = group_b.head(5)
@@ -68,7 +55,8 @@ def filter_questions(df):
 
     final_result = pd.concat([selected, remaining]).reset_index(drop=True)
     final_result = final_result.drop(columns=["DaysSinceLastAsked", "Accuracy"])
-    return final_result
+    #削除区分1以外を返す
+    return final_result[final_result["delete"] != 1]
 
 #回答結果を更新
 def update_data(rec,df):
@@ -82,11 +70,11 @@ def setting_questions(current_question):
     st.write(f"[科目: {current_question['subject']}]")
     st.write(f"**問題:** {current_question['exercise']}")
     st.write(f"==引用== {current_question['reference']}")
-    #画像のパスがあれば画像を出力
+    #問題の画像のパスがあれば画像を出力
     if current_question['exercise_image']:
         question_image = Image.open(current_question['exercise_image'])
         st.image(question_image)
-        
+    
 # Streamlitアプリ
 def main():
     st.title("復習問題　テスト")
@@ -130,6 +118,7 @@ def main():
                 answer_image = Image.open(current_question['answer_image'])
                 st.image(answer_image)
             if current_question["additional_info"]:
+                st.write("== 解説 ==")
                 st.write(current_question["additional_info"])
             # 正解ボタン
             if st.button("正解"):
