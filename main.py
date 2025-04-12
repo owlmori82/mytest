@@ -119,7 +119,8 @@ def main():
                 st.image(answer_image)
             if current_question["additional_info"]:
                 st.write("== 解説 ==")
-                st.write(current_question["additional_info"])
+                for line in current_question["additional_info"].split('<br>'):
+                    st.write(line)
             # 正解ボタン
             if st.button("正解"):
                 current_question["correct"] += 1
