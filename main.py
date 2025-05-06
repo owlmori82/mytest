@@ -95,8 +95,8 @@ def main():
         
     # Initialize connection.
     conn = st.connection("supabase",type=SupabaseConnection)
-    TABLE_NAME = 'develop_review_questions'
-    #TABLE_NAME = 'review_questions'
+    #TABLE_NAME = 'develop_review_questions'
+    TABLE_NAME = 'review_questions'
     
     #データベースから取得して初期ロード
     #出題順を並べ替えてからセット
