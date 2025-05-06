@@ -68,7 +68,9 @@ def update_data(rec,df):
 #出題する
 def setting_questions(current_question):
     st.write(f"[科目: {current_question['subject']}]")
-    st.write(f"**問題:** {current_question['exercise']}")
+    st.write(f"**問題:**")
+    for line in current_question["exercise"].split('<br>'):
+        st.write(line)
     st.write(f"==引用== {current_question['reference']}")
     #問題の画像のパスがあれば画像を出力
     if current_question['exercise_image']:
@@ -93,7 +95,8 @@ def main():
         
     # Initialize connection.
     conn = st.connection("supabase",type=SupabaseConnection)
-    TABLE_NAME = 'review_questions'
+    TABLE_NAME = 'develop_review_questions'
+    #TABLE_NAME = 'review_questions'
     
     #データベースから取得して初期ロード
     #出題順を並べ替えてからセット
@@ -165,7 +168,7 @@ def main():
     st.download_button(
         label="結果をダウンロード",
         data=st.session_state.data.to_csv(index=False).encode("utf-8"),
-        file_name="download_wordcards.csv",
+        file_name="download_review.csv",
         mime="text/csv"
     )
    
