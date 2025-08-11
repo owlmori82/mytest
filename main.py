@@ -227,8 +227,8 @@ def page_register(conn, TABLE_NAME):
 
 def main():
     conn = st.connection("supabase", type=SupabaseConnection)
-    TABLE_NAME = 'develop_review_questions'
-    # TABLE_NAME = 'review_questions'
+    # TABLE_NAME = 'develop_review_questions'
+    TABLE_NAME = 'review_questions'
 
     page = st.sidebar.selectbox("ページを選択", ["問題出題", "問題登録"])
 
