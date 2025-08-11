@@ -35,7 +35,7 @@ def filter_questions(df):
     group_c = df[(df["correct"] + df["incorrect"] == 2) & (df["DaysSinceLastAsked"] >= 3)]
     group_d = df[(df["correct"] + df["incorrect"] == 3) & (df["DaysSinceLastAsked"] >= 7)]
     group_e = df[(df["correct"] + df["incorrect"] >= 4) & (df["Accuracy"] < 0.8)]
-    selected = pd.concat([group_a.head(5), group_b.head(5), group_c.head(5), group_d.head(5),
+    selected = pd.concat([group_a.head(3), group_b.head(3), group_c.head(3), group_d.head(3),
                           group_e.sample(n=min(5, len(group_e))) if len(group_e) > 0 else pd.DataFrame()])
     remaining = df.loc[~df.index.isin(selected.index)]
     final_result = pd.concat([selected, remaining]).reset_index(drop=True)
@@ -83,7 +83,7 @@ def page_quiz(conn, TABLE_NAME):
         st.session_state.data = filter_questions(st.session_state.data)
         st.session_state.read_file = True
 
-    if (st.session_state.current_index < len(st.session_state.data)) and (st.session_state.current_index < 5):
+    if (st.session_state.current_index < len(st.session_state.data)) and (st.session_state.current_index < 12):
         current_question = st.session_state.data.iloc[st.session_state.current_index]
         setting_questions(current_question)
 
@@ -227,8 +227,8 @@ def page_register(conn, TABLE_NAME):
 
 def main():
     conn = st.connection("supabase", type=SupabaseConnection)
-    #TABLE_NAME = 'develop_review_questions'
-    TABLE_NAME = 'review_questions'
+    TABLE_NAME = 'develop_review_questions'
+    # TABLE_NAME = 'review_questions'
 
     page = st.sidebar.selectbox("ページを選択", ["問題出題", "問題登録"])
 
