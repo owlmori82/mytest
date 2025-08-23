@@ -11,7 +11,7 @@ import uuid
 def load_data(conn, TABLE_NAME):
     response = conn.table(TABLE_NAME).select("*").execute()
     df = pd.DataFrame(data=response.data)
-    df["lastasked"] = pd.to_datetime(df["lastasked"], format="ISO8601")
+    df["lastasked"] = pd.to_datetime(df["lastasked"], errors="coerce")
     return df
 
 def save_data(df, conn, TABLE_NAME):
@@ -260,7 +260,8 @@ def page_edit(conn, TABLE_NAME):
         st.markdown("#### 🔍 問題文プレビュー")
         st.markdown(exercise.replace("\n", "<br>"), unsafe_allow_html=True)
 
-    exercise_image = st.text_input("問題画像のパス", value=row.get("exercise_image", ""), key="edit_exercise_image")
+    auto_exercise_image = st.checkbox("問題画像を自動設定する", value=False, key=f"auto_exercise_image_{edit_id}")
+    exercise_image = f"./data/{edit_id}_問題.jpg" if auto_exercise_image else st.text_input("問題画像のパス", value=row.get("exercise_image", ""), key="edit_exercise_image")
 
     # 答え
     answer = st.text_area("答え", value=row["answer"], key="edit_answer")
@@ -268,7 +269,8 @@ def page_edit(conn, TABLE_NAME):
         st.markdown("#### 📝 答えプレビュー")
         st.markdown(answer.replace("\n", "<br>"), unsafe_allow_html=True)
 
-    answer_image = st.text_input("答え画像のパス", value=row.get("answer_image", ""), key="edit_answer_image")
+    auto_answer_image = st.checkbox("答え画像を自動設定する", value=False, key=f"auto_answer_image_{edit_id}")
+    answer_image = f"./data/{edit_id}_解答.jpg" if auto_answer_image else st.text_input("答え画像のパス", value=row.get("answer_image", ""), key="edit_answer_image")
 
     # 解説
     additional_info = st.text_area("解説", value=row.get("additional_info", ""), key="edit_additional")
