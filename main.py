@@ -192,6 +192,8 @@ def page_register(conn, TABLE_NAME):
         st.markdown(additional_info.replace("\n", "<br>"), unsafe_allow_html=True)
 
     reference = st.text_input("出典（必須）", key=f"reference_{form_key}")
+    
+    delete = st.selectbox("削除フラグ", [0,1], key=f"delete_{form_key}")
 
 
     if st.button("この内容で問題を登録"):
@@ -212,7 +214,7 @@ def page_register(conn, TABLE_NAME):
                 "correct": 0,
                 "incorrect": 0,
                 "lastasked": datetime.datetime.now().isoformat(),
-                "delete": 0
+                "delete": delete
             }
             conn.table(TABLE_NAME).insert(new_question).execute()
             st.success("新しい問題が登録されました！")
@@ -222,6 +224,83 @@ def page_register(conn, TABLE_NAME):
         else:
             st.error("科目・単元・問題文・答え・出典は必須です。")
 
+# === ページ3：既存問題の修正 ===
+
+def page_edit(conn, TABLE_NAME):
+    st.title("問題の修正")
+
+    df = load_data(conn, TABLE_NAME)
+
+    # ID指定
+    edit_id = st.text_input("修正したい問題のIDを入力してください")
+    if not edit_id:
+        st.info("IDを入力すると、その問題を編集できます。")
+        return
+
+    target = df[df["id"].astype(str) == str(edit_id)]
+    if target.empty:
+        st.error("指定したIDのデータが見つかりません。")
+        return
+
+    row = target.iloc[0]
+
+    # === 入力フォーム ===
+    subject = st.selectbox(
+        "科目", ("算数", "英語", "理科", "社会", "国語"),
+        index=("算数","英語","理科","社会","国語").index(row["subject"]) 
+        if row["subject"] in ["算数","英語","理科","社会","国語"] else 0
+    )
+    unit = st.text_input("単元", value=row["unit"])
+    level = st.selectbox("レベル", [1,2,3,4,5],
+                         index=[1,2,3,4,5].index(int(row["level"])) if str(row["level"]).isdigit() else 0)
+
+    # 問題文
+    exercise = st.text_area("問題文", value=row["exercise"], key="edit_exercise")
+    if exercise:
+        st.markdown("#### 🔍 問題文プレビュー")
+        st.markdown(exercise.replace("\n", "<br>"), unsafe_allow_html=True)
+
+    exercise_image = st.text_input("問題画像のパス", value=row.get("exercise_image", ""), key="edit_exercise_image")
+
+    # 答え
+    answer = st.text_area("答え", value=row["answer"], key="edit_answer")
+    if answer:
+        st.markdown("#### 📝 答えプレビュー")
+        st.markdown(answer.replace("\n", "<br>"), unsafe_allow_html=True)
+
+    answer_image = st.text_input("答え画像のパス", value=row.get("answer_image", ""), key="edit_answer_image")
+
+    # 解説
+    additional_info = st.text_area("解説", value=row.get("additional_info", ""), key="edit_additional")
+    if additional_info:
+        st.markdown("#### 📝 解説プレビュー")
+        st.markdown(additional_info.replace("\n", "<br>"), unsafe_allow_html=True)
+
+    reference = st.text_input("出典", value=row["reference"])
+    delete_flag = st.checkbox("削除フラグ", value=bool(row["delete"]))
+
+    # === 保存ボタン ===
+    if st.button("この内容で保存"):
+        updated_question = {
+            "id": str(edit_id),
+            "level": level,
+            "subject": subject,
+            "unit": unit,
+            "exercise": exercise,
+            "exercise_image": exercise_image if exercise_image else None,
+            "exercise_audio": row.get("exercise_audio"),
+            "answer": answer,
+            "answer_image": answer_image if answer_image else None,
+            "answer_audio": row.get("answer_audio"),
+            "additional_info": additional_info,
+            "reference": reference,
+            "correct": int(row["correct"]),
+            "incorrect": int(row["incorrect"]),
+            "lastasked": row["lastasked"].isoformat() if isinstance(row["lastasked"], datetime.datetime) else str(row["lastasked"]),
+            "delete": 1 if delete_flag else 0
+        }
+        conn.table(TABLE_NAME).upsert(updated_question).execute()
+        st.success(f"ID {edit_id} の問題を更新しました！")
 
 # === メインアプリ ===
 
@@ -230,12 +309,14 @@ def main():
     # TABLE_NAME = 'develop_review_questions'
     TABLE_NAME = 'review_questions'
 
-    page = st.sidebar.selectbox("ページを選択", ["問題出題", "問題登録"])
+    page = st.sidebar.selectbox("ページを選択", ["問題出題", "問題登録", "問題修正"])
 
     if page == "問題出題":
         page_quiz(conn, TABLE_NAME)
     elif page == "問題登録":
         page_register(conn, TABLE_NAME)
+    elif page == "問題修正":
+        page_edit(conn, TABLE_NAME)
 
 if __name__ == "__main__":
     main()
