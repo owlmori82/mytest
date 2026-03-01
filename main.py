@@ -83,7 +83,7 @@ def page_quiz(conn, TABLE_NAME):
         st.session_state.data = filter_questions(st.session_state.data)
         st.session_state.read_file = True
 
-    if (st.session_state.current_index < len(st.session_state.data)) and (st.session_state.current_index < 12):
+    if (st.session_state.current_index < len(st.session_state.data)) and (st.session_state.current_index < 7):
         current_question = st.session_state.data.iloc[st.session_state.current_index]
         setting_questions(current_question)
 
